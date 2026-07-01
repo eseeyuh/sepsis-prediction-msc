@@ -1,0 +1,32 @@
+# Core
+numpy
+pandas
+scipy
+scikit-learn
+
+# Models
+lightgbm
+xgboost
+torch
+
+# Calibration / uncertainty
+mapie
+
+# Explainability
+shap
+captum
+
+# Experiment management
+hydra-core
+mlflow
+
+# Plotting
+matplotlib
+seaborn
+
+# Testing
+pytest
+
+# Notebooks
+jupyter
+ipykernel

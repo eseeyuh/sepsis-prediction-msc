@@ -1,0 +1,32 @@
+# Data — never commit patient data, even de-identified
+data/*
+!data/README.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.ipynb_checkpoints/
+
+# Environment / secrets
+.env
+*.pem
+
+# Experiment tracking / outputs
+outputs/
+wandb/
+mlruns/
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints
