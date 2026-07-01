@@ -5,9 +5,9 @@ strong discrimination, calibrated probabilities, principled uncertainty quantifi
 and faithful, stable explanations — with an explicit stress test under hospital-site shift.
 
 **Dataset:** [PhysioNet/Computing in Cardiology Challenge 2019](https://physionet.org/content/challenge-2019/1.0.0/)
-**Author:** [Your name]
-**Supervisor:** [Supervisor name]
-**Course:** MSc [Your course], 2025–26
+**Author:** Shaidarov Daryn
+**Supervisor:** Honghai Liu
+**Course:** MSc Machine Learning and Artificial Intelligence, 2025–26
 
 ---
 
