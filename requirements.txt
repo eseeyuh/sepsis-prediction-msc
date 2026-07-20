@@ -4,23 +4,23 @@ pandas
 scipy
 scikit-learn
 
-# Models
+# Model (LightGBM baseline — see project diary for the scoping decision
+# to focus on one model rather than the originally-planned LightGBM/GRU/
+# Transformer comparison, given the compressed timeline)
 lightgbm
-xgboost
-torch
 
-# Calibration / uncertainty
-mapie
+# Calibration / uncertainty — implemented from scratch in this project
+# (src/calibration/, src/uncertainty/) rather than via a library, so no
+# extra dependency is required beyond scipy (used for temperature scaling's
+# optimiser) and scikit-learn (used for Platt scaling and isotonic regression).
 
 # Explainability
 shap
-captum
 
-# Experiment management
-hydra-core
-mlflow
+# Config
+pyyaml
 
-# Plotting
+# Plotting (for notebooks / figure generation, not yet used by any src/ script)
 matplotlib
 seaborn
 
@@ -30,3 +30,10 @@ pytest
 # Notebooks
 jupyter
 ipykernel
+
+# --- Not currently used, kept here as a note for future work ---
+# torch          # would be needed if GRU/Transformer models are added later
+# captum         # would be needed for Integrated Gradients if a neural model is added
+# mapie          # considered for conformal prediction; used a from-scratch
+#                # implementation instead (src/uncertainty/) for full control
+#                # and transparency over the exact method used

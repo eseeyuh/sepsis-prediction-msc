@@ -1,0 +1,25 @@
+# LightGBM baseline hyperparameters.
+#
+# These are reasonable starting defaults, not the result of a tuning sweep.
+# If time allows later in the project, a documented hyperparameter search
+# (e.g. via Optuna, or even a simple grid over learning_rate / num_leaves)
+# belongs here — but getting a correct, leak-free, well-evaluated baseline
+# working is a higher priority than tuning it, especially under the 4-week
+# scoped plan.
+
+params:
+  objective: binary
+  metric: auc
+  boosting_type: gbdt
+  learning_rate: 0.05
+  num_leaves: 31
+  min_data_in_leaf: 50
+  feature_fraction: 0.8
+  bagging_fraction: 0.8
+  bagging_freq: 5
+  is_unbalance: true
+  verbosity: -1
+  seed: 42
+
+num_boost_round: 500
+early_stopping_rounds: 30
