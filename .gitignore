@@ -15,7 +15,9 @@ venv/
 *.pem
 
 # Experiment tracking / outputs
-outputs/
+outputs/*
+!outputs/demo_data.json
+!outputs/figures/
 wandb/
 mlruns/
 checkpoints/
