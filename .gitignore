@@ -18,6 +18,7 @@ venv/
 outputs/*
 !outputs/demo_data.json
 !outputs/figures/
+!outputs/demo/
 wandb/
 mlruns/
 checkpoints/

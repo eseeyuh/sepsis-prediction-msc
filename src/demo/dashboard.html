@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sepsis Early Warning — Demonstration Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #172029;
+    --panel-2: #1e2935;
+    --border: #2a3744;
+    --text: #e6edf3;
+    --text-dim: #8b9bab;
+    --text-faint: #5d6b7a;
+    --green: #3fb950;
+    --amber: #d29922;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --purple: #bc8cff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 18px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 32px 40px;
+    max-width: 1800px;
+    margin: 0 auto;
+  }
+  .banner {
+    background: rgba(210, 153, 34, 0.12);
+    border: 1px solid rgba(210, 153, 34, 0.4);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-size: 17px;
+    color: var(--amber);
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 20px; margin-bottom: 22px;
+  }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.2px; }
+  .subtitle { font-size: 17px; color: var(--text-dim); margin-top: 4px; }
+  .controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  select, button {
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 13px 20px; font-size: 17px; font-family: inherit; cursor: pointer;
+  }
+  button:hover, select:hover { border-color: var(--text-faint); }
+  button.primary { background: var(--blue); color: #0d1117; border-color: var(--blue); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .grid > .panel.wide { grid-column: 1 / -1; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+  }
+  .panel-title {
+    font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-faint); margin-bottom: 18px; font-weight: 600;
+  }
+  .vitals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .vital {
+    background: var(--panel-2); border-radius: 10px; padding: 16px 18px;
+    border-left: 4px solid var(--border);
+  }
+  .vital-label { font-size: 13px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.6px; }
+  .vital-value { font-size: 38px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .vital-unit { font-size: 16px; color: var(--text-dim); font-weight: 400; margin-left: 4px; }
+  .vital.abnormal { border-left-color: var(--amber); }
+  .vital.critical { border-left-color: var(--red); }
+  .spark { display: block; margin-top: 10px; }
+  .risk-value { font-size: 72px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .risk-label { font-size: 17px; color: var(--text-dim); margin-top: 8px; }
+  .risk-bar-wrap { margin-top: 20px; }
+  .risk-bar-bg { height: 12px; background: var(--panel-2); border-radius: 6px; position: relative; overflow: visible; }
+  .risk-bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease, background 0.6s ease; }
+  .threshold-mark { position: absolute; top: -5px; width: 3px; height: 22px; background: var(--text-dim); }
+  .threshold-caption { font-size: 15px; color: var(--text-faint); margin-top: 12px; }
+  .uncertainty {
+    margin-top: 20px; padding: 14px 16px; border-radius: 8px;
+    font-size: 17px; font-weight: 600; text-align: center;
+  }
+  .u-confident-low { background: rgba(63,185,80,0.12); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .u-confident-high { background: rgba(248,81,73,0.12); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+  .u-uncertain { background: rgba(188,140,255,0.12); color: var(--purple); border: 1px solid rgba(188,140,255,0.4); }
+  .u-none { background: rgba(139,155,171,0.1); color: var(--text-dim); border: 1px solid var(--border); }
+  .expl-item { margin-bottom: 16px; }
+  .expl-row { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+  .expl-label { font-size: 18px; }
+  .expl-val { font-size: 15px; color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .expl-bar-bg { height: 6px; background: var(--panel-2); border-radius: 3px; margin-top: 7px; position: relative; }
+  .expl-bar { height: 100%; border-radius: 3px; position: absolute; top: 0; }
+  .expl-up { background: var(--red); }
+  .expl-down { background: var(--blue); }
+  .expl-empty { font-size: 17px; color: var(--text-faint); font-style: italic; }
+  .context-note { font-size: 15px; color: var(--text-faint); margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .timeline-wrap { margin-top: 18px; }
+  .reveal {
+    margin-top: 20px; padding: 20px; border-radius: 10px;
+    background: var(--panel-2); border: 1px solid var(--border); font-size: 17px;
+  }
+  .reveal.hidden { display: none; }
+  .reveal h3 { font-size: 18px; margin-bottom: 10px; color: var(--text); }
+  .reveal p { color: var(--text-dim); line-height: 1.6; }
+  .hour-badge {
+    font-variant-numeric: tabular-nums; font-size: 17px; color: var(--text-dim);
+    background: var(--panel-2); padding: 12px 18px; border-radius: 8px; border: 1px solid var(--border);
+  }
+  .scenario-desc { font-size: 16px; color: var(--text-dim); margin-top: 10px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <strong>Demonstration only.</strong> Replaying historical, de-identified test-set records at accelerated speed (1 ICU hour = 15 seconds). Not a live clinical system, and not a medical device.
+</div>
+
+<header>
+  <div>
+    <h1>Sepsis early warning — demonstration</h1>
+    <div class="subtitle">PhysioNet/CinC Challenge 2019 · held-out test split · calibrated risk with conformal uncertainty</div>
+  </div>
+  <div class="controls">
+    <select id="case-select"></select>
+    <select id="speed-select">
+      <option value="15000">15 s / hour</option>
+      <option value="8000">8 s / hour</option>
+      <option value="3000">3 s / hour</option>
+      <option value="1000">1 s / hour</option>
+    </select>
+    <button id="play-btn" class="primary">Play</button>
+    <button id="step-btn">Step</button>
+    <button id="reset-btn">Reset</button>
+    <span class="hour-badge" id="hour-badge">ICU hour —</span>
+  </div>
+</header>
+
+<div id="scenario-desc" class="scenario-desc" style="margin-bottom:14px"></div>
+
+<div class="grid">
+  <div class="panel">
+    <div class="panel-title">Vital signs</div>
+    <div class="vitals" id="vitals"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Sepsis risk (next 6 hours)</div>
+    <div class="risk-value" id="risk-value">—</div>
+    <div class="risk-label" id="risk-label">Calibrated probability</div>
+    <div class="risk-bar-wrap">
+      <div class="risk-bar-bg">
+        <div class="risk-bar-fill" id="risk-bar" style="width:0%"></div>
+        <div class="threshold-mark" id="threshold-mark"></div>
+      </div>
+      <div class="threshold-caption" id="threshold-caption"></div>
+    </div>
+    <div class="uncertainty u-none" id="uncertainty">Awaiting data</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Why — top contributing factors</div>
+    <div id="explanations"><div class="expl-empty">Press play to begin.</div></div>
+    <div class="context-note" id="context-note" style="display:none"></div>
+  </div>
+
+  <div class="panel wide">
+    <div class="panel-title">Risk trajectory</div>
+    <div class="timeline-wrap"><svg id="timeline" width="100%" height="260" preserveAspectRatio="none"></svg></div>
+    <div class="threshold-caption" id="timeline-caption"></div>
+  </div>
+</div>
+
+<div class="reveal hidden" id="reveal">
+  <h3 id="reveal-title"></h3>
+  <p id="reveal-body"></p>
+</div>
+
+<script>
+// Features that describe care context / timing rather than physiology.
+// Kept visible but separated: they genuinely drive the model (see the
+// dissertation's Phase 5 and 6 findings) but a clinician reading an alert
+// needs the physiological drivers foregrounded.
+const CONTEXT_FEATURES = new Set([
+  'ICULOS', 'hours_since_admission', 'HospAdmTime', 'Unit1', 'Unit2', 'Age', 'Gender'
+]);
+
+const VITAL_META = {
+  HR:    { label: 'Heart rate',  unit: 'bpm',  normal: [60, 100],   critical: [50, 120] },
+  O2Sat: { label: 'SpO₂',        unit: '%',    normal: [95, 100],   critical: [90, 101] },
+  Temp:  { label: 'Temperature', unit: '°C',   normal: [36.1, 37.8], critical: [35.5, 38.5] },
+  SBP:   { label: 'Systolic BP', unit: 'mmHg', normal: [100, 140],  critical: [90, 160] },
+  MAP:   { label: 'MAP',         unit: 'mmHg', normal: [70, 100],   critical: [65, 110] },
+  Resp:  { label: 'Resp rate',   unit: '/min', normal: [12, 20],    critical: [10, 24] }
+};
+
+const SCENARIO_META = {
+  early_warning: {
+    title: 'Early warning — correct',
+    desc: 'A patient who later developed sepsis. Watch how far ahead of clinical onset the calibrated risk crosses the operating threshold.'
+  },
+  uncertain: {
+    title: 'Genuine uncertainty',
+    desc: 'The conformal prediction set includes both classes for a substantial share of hours — the system is explicitly declining to commit, rather than guessing.'
+  },
+  stable: {
+    title: 'Stable patient — no false alarms',
+    desc: 'A long stay with no sepsis. Included as a contrast: an alerting system is only useful if it stays quiet when nothing is wrong.'
+  },
+  failure_missed: {
+    title: 'Failure case — missed',
+    desc: 'A patient who developed sepsis but never triggered an alert at this threshold. Shown deliberately: a demonstration of only successful cases would misrepresent the system.'
+  },
+  failure_false_alarm: {
+    title: 'Failure case — false alarm',
+    desc: 'A patient who never developed sepsis but repeatedly triggered alerts. Shown deliberately, for the same reason as above.'
+  }
+};
+
+let DATA = null, patient = null, hourIdx = -1, timer = null, threshold = 0.03;
+
+function classifyVital(key, value) {
+  const m = VITAL_META[key];
+  if (!m || value === null) return '';
+  if (value < m.critical[0] || value > m.critical[1]) return 'critical';
+  if (value < m.normal[0] || value > m.normal[1]) return 'abnormal';
+  return '';
+}
+
+function sparkline(values, w = 170, h = 32) {
+  const clean = values.filter(v => v !== null);
+  if (clean.length < 2) return '';
+  const min = Math.min(...clean), max = Math.max(...clean);
+  const range = (max - min) || 1;
+  const pts = values.map((v, i) => {
+    if (v === null) return null;
+    const x = (i / Math.max(values.length - 1, 1)) * w;
+    const y = h - ((v - min) / range) * (h - 4) - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).filter(Boolean).join(' ');
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <polyline points="${pts}" fill="none" stroke="#8b9bab" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+}
+
+function riskColour(p) {
+  if (p >= threshold * 4) return 'var(--red)';
+  if (p >= threshold) return 'var(--amber)';
+  return 'var(--green)';
+}
+
+function renderVitals() {
+  const shown = DATA.metadata.display_vitals;
+  const history = patient.hours.slice(0, hourIdx + 1);
+  document.getElementById('vitals').innerHTML = shown.map(key => {
+    const m = VITAL_META[key] || { label: key, unit: '' };
+    const val = hourIdx >= 0 ? patient.hours[hourIdx].vitals[key] : null;
+    const cls = classifyVital(key, val);
+    const series = history.map(h => h.vitals[key]);
+    return `<div class="vital ${cls}">
+      <div class="vital-label">${m.label}</div>
+      <div class="vital-value">${val === null ? '—' : val.toFixed(key === 'Temp' ? 1 : 0)}<span class="vital-unit">${m.unit}</span></div>
+      ${sparkline(series)}
+    </div>`;
+  }).join('');
+}
+
+function renderRisk() {
+  const h = patient.hours[hourIdx];
+  const pct = (h.prob_calibrated * 100);
+  document.getElementById('risk-value').textContent = pct.toFixed(1) + '%';
+  document.getElementById('risk-value').style.color = riskColour(h.prob_calibrated);
+
+  const barWidth = Math.min(100, (h.prob_calibrated / (threshold * 6)) * 100);
+  const bar = document.getElementById('risk-bar');
+  bar.style.width = barWidth.toFixed(1) + '%';
+  bar.style.background = riskColour(h.prob_calibrated);
+  document.getElementById('threshold-mark').style.left = (100 / 6).toFixed(1) + '%';
+  document.getElementById('threshold-caption').textContent =
+    `Alert threshold ${(threshold * 100).toFixed(1)}% (selected on validation data) · ` +
+    (h.above_threshold ? 'THRESHOLD EXCEEDED' : 'below threshold');
+
+  const u = document.getElementById('uncertainty');
+  const states = {
+    confident_low_risk:  ['u-confident-low',  'Confident — low risk'],
+    confident_high_risk: ['u-confident-high', 'Confident — elevated risk'],
+    uncertain:           ['u-uncertain',      'Uncertain — clinical review recommended'],
+    no_confident_class:  ['u-none',           'No confident classification']
+  };
+  const [cls, text] = states[h.uncertainty_state] || ['u-none', h.uncertainty_state];
+  u.className = 'uncertainty ' + cls;
+  u.textContent = text;
+}
+
+function renderExplanations() {
+  const h = patient.hours[hourIdx];
+  const physio = h.explanations.filter(e => !CONTEXT_FEATURES.has(e.feature));
+  const context = h.explanations.filter(e => CONTEXT_FEATURES.has(e.feature));
+  const maxAbs = Math.max(...h.explanations.map(e => Math.abs(e.shap_value)), 1e-9);
+
+  const box = document.getElementById('explanations');
+  if (physio.length === 0 && context.length === 0) {
+    box.innerHTML = '<div class="expl-empty">No individually significant drivers this hour.</div>';
+  } else if (physio.length === 0) {
+    box.innerHTML = '<div class="expl-empty">No physiological drivers above the reporting threshold this hour.</div>';
+  } else {
+    box.innerHTML = physio.map(e => {
+      const w = (Math.abs(e.shap_value) / maxAbs) * 100;
+      const up = e.shap_value > 0;
+      const valTxt = e.feature_value === null ? '' :
+        `${e.feature_value.toFixed(Math.abs(e.feature_value) < 10 ? 2 : 1)}`;
+      return `<div class="expl-item">
+        <div class="expl-row">
+          <span class="expl-label">${e.label}</span>
+          <span class="expl-val">${valTxt} · ${up ? '↑' : '↓'} ${e.direction}</span>
+        </div>
+        <div class="expl-bar-bg"><div class="expl-bar ${up ? 'expl-up' : 'expl-down'}" style="width:${w.toFixed(0)}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  const note = document.getElementById('context-note');
+  if (context.length) {
+    note.style.display = 'block';
+    note.innerHTML = 'Also contributing (care context, not physiology): ' +
+      context.map(e => `${e.label} (${e.shap_value > 0 ? '↑' : '↓'})`).join(', ');
+  } else {
+    note.style.display = 'none';
+  }
+}
+
+function renderTimeline() {
+  const svg = document.getElementById('timeline');
+  const W = 1500, H = 260, pad = 12, padLeft = 60;
+  const probs = patient.hours.map(h => h.prob_calibrated);
+
+  // Log scale: calibrated risk for a rare event spends most of a stay
+  // in the 0.001-0.01 range with a much higher peak. On a linear axis the
+  // whole trajectory flattens against the baseline and the threshold line
+  // becomes indistinguishable from it. A log axis keeps the shape of the
+  // rise visible, which is the entire point of this panel.
+  const FLOOR = 1e-4;
+  const maxP = Math.max(...probs, threshold * 3);
+  const lo = Math.log10(FLOOR), hi = Math.log10(maxP);
+  const norm = p => (Math.log10(Math.max(p, FLOOR)) - lo) / (hi - lo);
+
+  const x = i => padLeft + (i / Math.max(patient.n_hours - 1, 1)) * (W - padLeft - pad);
+  const y = p => H - pad - norm(p) * (H - 2 * pad);
+
+  const shown = patient.hours.slice(0, hourIdx + 1);
+  const line = shown.map((h, i) => `${x(i).toFixed(1)},${y(h.prob_calibrated).toFixed(1)}`).join(' ');
+  const thresholdY = y(threshold).toFixed(1);
+
+  const ticks = [0.001, 0.01, 0.1, 1].filter(t => t >= FLOOR && t <= maxP * 1.5)
+    .map(t => `<text x="${padLeft - 8}" y="${(y(t) + 4).toFixed(1)}" fill="#5d6b7a" font-size="16" text-anchor="end">${t * 100 < 1 ? (t * 100).toFixed(1) : (t * 100).toFixed(0)}%</text>`).join('');
+
+  let onsetMark = '';
+  if (patient.onset_hour !== null && hourIdx >= 0) {
+    const oi = patient.hours.findIndex(h => h.iculos >= patient.onset_hour);
+    if (oi >= 0 && oi <= hourIdx) {
+      onsetMark = `<line x1="${x(oi)}" y1="${pad}" x2="${x(oi)}" y2="${H - pad}" stroke="#f85149" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="${x(oi) + 8}" y="${pad + 18}" fill="#f85149" font-size="16">sepsis onset</text>`;
+    }
+  }
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = `
+    ${ticks}
+    <line x1="${padLeft}" y1="${thresholdY}" x2="${W - pad}" y2="${thresholdY}" stroke="#d29922" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <text x="${W - pad}" y="${thresholdY - 8}" fill="#d29922" font-size="16" text-anchor="end">alert threshold</text>
+    ${onsetMark}
+    ${shown.length > 1 ? `<polyline points="${line}" fill="none" stroke="#58a6ff" stroke-width="3" stroke-linejoin="round"/>` : ''}
+    ${shown.length ? `<circle cx="${x(hourIdx)}" cy="${y(probs[hourIdx])}" r="6" fill="#58a6ff"/>` : ''}`;
+
+  document.getElementById('timeline-caption').textContent =
+    `Calibrated risk across the stay (log scale) · hour ${hourIdx + 1} of ${patient.n_hours}`;
+}
+
+function renderReveal() {
+  const box = document.getElementById('reveal');
+  if (hourIdx < patient.n_hours - 1) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+
+  const alertHour = patient.hours.find(h => h.above_threshold);
+  document.getElementById('reveal-title').textContent = 'Playback complete — ground truth';
+
+  let body;
+  if (patient.is_septic) {
+    body = `This patient developed sepsis (clinical onset at ICU hour ${patient.onset_hour}). `;
+    body += alertHour
+      ? `The system first crossed the alert threshold at hour ${alertHour.iculos} — ${(patient.onset_hour - alertHour.iculos).toFixed(0)} hours of lead time.`
+      : `The system never crossed the alert threshold during this stay — this case was missed.`;
+  } else {
+    body = 'This patient did not develop sepsis. ';
+    body += alertHour
+      ? `The system crossed the alert threshold at hour ${alertHour.iculos} — a false alarm.`
+      : 'The system correctly stayed below the alert threshold throughout.';
+  }
+  document.getElementById('reveal-body').textContent = body;
+}
+
+function render() {
+  document.getElementById('hour-badge').textContent =
+    hourIdx < 0 ? 'ICU hour —' : `ICU hour ${patient.hours[hourIdx].iculos}`;
+  renderVitals();
+  if (hourIdx >= 0) { renderRisk(); renderExplanations(); }
+  renderTimeline();
+  renderReveal();
+}
+
+function step() {
+  if (hourIdx >= patient.n_hours - 1) { pause(); return; }
+  hourIdx++;
+  render();
+}
+
+function play() {
+  if (timer) return;
+  if (hourIdx >= patient.n_hours - 1) hourIdx = -1;
+  step();
+  timer = setInterval(step, parseInt(document.getElementById('speed-select').value, 10));
+  document.getElementById('play-btn').textContent = 'Pause';
+}
+
+function pause() {
+  clearInterval(timer); timer = null;
+  document.getElementById('play-btn').textContent = 'Play';
+}
+
+function reset() {
+  pause(); hourIdx = -1;
+  document.getElementById('explanations').innerHTML = '<div class="expl-empty">Press play to begin.</div>';
+  document.getElementById('context-note').style.display = 'none';
+  document.getElementById('risk-value').textContent = '—';
+  document.getElementById('risk-value').style.color = 'var(--text)';
+  document.getElementById('risk-bar').style.width = '0%';
+  document.getElementById('uncertainty').className = 'uncertainty u-none';
+  document.getElementById('uncertainty').textContent = 'Awaiting data';
+  render();
+}
+
+function loadCase(key) {
+  pause();
+  patient = DATA.patients[key];
+  const meta = SCENARIO_META[key] || { title: key, desc: '' };
+  document.getElementById('scenario-desc').innerHTML =
+    `<strong>${meta.title}</strong> — ${meta.desc} <span style="color:var(--text-faint)">(${patient.n_hours} hours)</span>`;
+  reset();
+}
+
+async function init() {
+  // A standalone build (see src/demo/build_standalone.py) embeds the
+  // dataset directly as a JSON <script> tag, so the file works by
+  // double-clicking it — no local server needed. During development,
+  // this tag is absent and the page falls back to fetch(), which needs
+  // `python -m http.server` because browsers block fetch() on file:// URLs.
+  const inline = document.getElementById('demo-data-inline');
+  if (inline) {
+    DATA = JSON.parse(inline.textContent);
+  } else {
+    const res = await fetch('demo_data.json');
+    DATA = await res.json();
+  }
+  threshold = DATA.metadata.operating_threshold;
+
+  const sel = document.getElementById('case-select');
+  sel.innerHTML = Object.keys(DATA.patients).map(k =>
+    `<option value="${k}">${(SCENARIO_META[k] || { title: k }).title}</option>`).join('');
+
+  sel.addEventListener('change', e => loadCase(e.target.value));
+  document.getElementById('play-btn').addEventListener('click', () => timer ? pause() : play());
+  document.getElementById('step-btn').addEventListener('click', () => { pause(); step(); });
+  document.getElementById('reset-btn').addEventListener('click', reset);
+  document.getElementById('speed-select').addEventListener('change', () => { if (timer) { pause(); play(); } });
+
+  loadCase(Object.keys(DATA.patients)[0]);
+}
+
+init().catch(err => {
+  document.body.insertAdjacentHTML('afterbegin',
+    `<div class="banner" style="background:rgba(248,81,73,0.12);border-color:rgba(248,81,73,0.4);color:#f85149">
+      Could not load demo_data.json — ${err.message}. Serve this folder over HTTP
+      (e.g. <code>python -m http.server</code>) rather than opening the file directly,
+      since browsers block fetch() on file:// URLs.
+    </div>`);
+});
+</script>
+</body>
+</html>
